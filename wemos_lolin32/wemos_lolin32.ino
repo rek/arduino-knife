@@ -6,15 +6,15 @@
 #include "wifiBroadcast.h"
 #include "html.h"
 
-/* 
- *  Knife sharpner v2
- *  
- *  Features:
- *  
- *   - web interface to control setup
- *   - buzzer for angle change feedback
- *  
- *  Setup info:
+/*
+    Knife sharpner v2
+
+    Features:
+
+     - web interface to control setup
+     - buzzer for angle change feedback
+
+    Setup info:
 
    Connections
    ===========
@@ -29,30 +29,27 @@
    S to digital 8
    - to GND
 
-   Button:
-   either to digital 12
-   either to GND
-*
 */
-const int button = 12;
 
 boolean setupComplete = false;
 boolean buzzerState = false;
 
 int baseAngle = 0;
-  
-int getDeviationFromBase(int currentLevel) {
-  const int okDeviation = 3;
+int currentAngle;
+int okDeviation = 3;
+
+int getDeviationFromBase() {
+
 
   Serial.print("Current: ");
-  Serial.println(currentLevel);
+  Serial.println(currentAngle);
 
-  if (baseAngle == currentLevel) {
+  if (baseAngle == currentAngle) {
     return 0;
   }
 
-  if (baseAngle > currentLevel) {
-    int deviation = baseAngle - currentLevel ;
+  if (baseAngle > currentAngle) {
+    int deviation = baseAngle - currentAngle;
 
     if (deviation < okDeviation) {
       return 0;
@@ -63,114 +60,105 @@ int getDeviationFromBase(int currentLevel) {
     }
 
     Serial.print("Below ");
-    Serial.println(deviation);    
+    Serial.println(deviation);
     int speedOfSound = 100;
     if (deviation > 20) {
       speedOfSound = 300;
     } else {
       speedOfSound = 100;
     }
-    beep(deviation * 100, speedOfSound);  
+    beep(deviation * 100, speedOfSound);
   } else {
-    int deviation = currentLevel - baseAngle;
+    int deviation = currentAngle - baseAngle;
 
     if (deviation < okDeviation) {
       return 0;
     }
 
     Serial.print("Above ");
-    Serial.println(deviation);   
+    Serial.println(deviation);
     int speedOfSound = 100;
     if (deviation > 20) {
       speedOfSound = 300;
     } else {
       speedOfSound = 100;
     }
-     
-    beep(deviation * 100, speedOfSound);  
+
+    beep(deviation * 100, speedOfSound);
   }
 }
-
-//server.on("/update", MainSystem_handleUpdate_wrapper);
 
 WebServer server(80);
 
 void handleSendAll() {
-  server.send(200, "text/html", getHTML()); 
+  server.send(200, "text/html", getHTML());
 }
 
-void toggleAngleSet() {
-  baseAngle += 1;
-  server.send(200, "text/html", (String) baseAngle); 
+void setAngle() {
+  baseAngle = currentAngle;
+  server.send(200, "text/html", (String) baseAngle);
+}
+
+void getCurrentAngle() {
+  server.send(200, "text/html", (String) currentAngle);
 }
 
 void handleToggleBuzzer() {
   buzzerState = !buzzerState;
-  server.send(200, "text/html", buzzerState ? "ON" : "OFF"); 
+  server.send(200, "text/html", buzzerState ? "ON" : "OFF");
 }
+
+void decrementDeviation() {
+  okDeviation -= 1;
+  server.send(200, "text/html", (String) okDeviation);
+}
+void incrementDeviation() {
+  okDeviation += 1;
+  server.send(200, "text/html", (String) okDeviation);
+}
+
+XYZ xyz;
 
 void setup(void)
 {
   Serial.begin(115200);
-  
+
   WifiBroadcast wifiBroadcast;
-  
+
   wifiBroadcast.setup();
-  
+
   server.on("/", handleSendAll);
-  server.on("/toggleAngleSet", toggleAngleSet);
-  server.on("/toggleBuzzer", handleToggleBuzzer);  
-  
+  server.on("/setAngle", setAngle);
+  server.on("/getCurrentAngle", getCurrentAngle);
+  server.on("/toggleBuzzer", handleToggleBuzzer);
+  server.on("/decrementDeviation", decrementDeviation);
+  server.on("/incrementDeviation", incrementDeviation);
+
   server.begin();
 
-  // xyz.setup();
-
-  // setup initial button state
-  // pinMode(button, INPUT_PULLUP);
-
-  delay(500); // needs time to startup  
-  Serial.println("HTTP server started");
-}
-
-void setInitialPosition(int z) {
-  Serial.print("Set base level at:");
-  Serial.println(z);
-  baseAngle = z;
+  ledcSetup(0, 500, 13);
+  ledcAttachPin(19, 0);
+    
   onSound();
+  
+  xyz.setup();
+
+  delay(500); // needs time to startup
+  Serial.println("HTTP server started");
 }
 
 void loop(void)
 {
   // for fun and testing:
   // playMusic(); return;
+  
   server.handleClient();
-  // wifiLoopAction();
-  return;
 
-//  int z = getReading();
-  int z = 0;
+  currentAngle = xyz.getZReading();
 
-  if (!setupComplete) {
-    //Serial.print("Button state: ");
-    //Serial.println(digitalRead(button));
+  delay(200);
 
-    // button is pressed
-    if (digitalRead(button) == 0) {     
-      // so save angle
-      setInitialPosition(z);
-      setupComplete = true;
-      Serial.print("Reset angle to: ");
-      Serial.println(baseAngle);
-      delay(1000);
-    }
-
-  } else {
-    getDeviationFromBase(z);
-    
-    if (digitalRead(button) == 0) {
-      Serial.println("Stopped reading");
-      setupComplete = false;
-      playShutdown();
-    }
+  if (buzzerState) {
+    getDeviationFromBase();
   }
 }

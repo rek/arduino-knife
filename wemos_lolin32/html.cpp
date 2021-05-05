@@ -5,30 +5,19 @@ String getHTML() {
   ptr +="<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
   ptr +="<title>Knife System</title>\n";
   ptr +="<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}\n";
-  ptr +="body{margin-top: 50px;} h1 {color: #444444;margin: 50px auto 30px;} h3 {color: #444444;margin-bottom: 50px;}\n";
-  ptr +=".button {display: block;width: 80px;background-color: #3498db;border: none;color: white;padding: 13px 30px;text-decoration: none;font-size: 25px;margin: 0px auto 35px;cursor: pointer;border-radius: 4px;}\n";
+  ptr +="body{margin-top: 50px;} h1 {color: #444444;margin: 50px auto 30px;} h3 {color: #444444;margin-bottom: 30px;}\n";
+  ptr +=".button {display: block;width: 80px;background-color: #3498db;border: none;color: white;padding: 13px 30px;text-decoration: none;font-size: 25px;cursor: pointer;border-radius: 4px;}\n";
   ptr +=".button-on {background-color: #3498db;}\n";
-  ptr +=".wrapper {display: flex;padding: 20px;justify-content: center;}\n";
+  ptr +=".wrapper {display: flex;justify-content: center;}\n";
   ptr +=".wrapperButton {padding: 0 20px;}\n";
   ptr +=".button-on:active {background-color: #2980b9;}\n";
   ptr +=".button-off {background-color: #34495e;}\n";
   ptr +=".button-off:active {background-color: #2c3e50;}\n";
+  ptr +=".big-text {font-size: 229px; margin: 0; color: #444444}\n";
+  ptr +="#deviation {padding-top: 60px;}\n";
+    
   ptr +="p {font-size: 14px;color: #888;margin-bottom: 10px;}\n";
   ptr +="</style>\n";
-  
-  ptr +="<script>\n";
-  ptr +="// setInterval(loadDoc,1000);\n";
-  ptr +="function loadDoc() {\n";
-  ptr +="var xhttp = new XMLHttpRequest();\n";
-  ptr +="xhttp.onreadystatechange = function() {\n";
-  ptr +="if (this.readyState === 4 && this.status === 200) {\n";
-  ptr +="document.body.innerHTML = this.responseText}\n";
-  ptr +="};\n";
-  ptr +="xhttp.open(\"GET\", \"/update\", true);\n";
-  ptr +="xhttp.send();\n";
-  ptr +="}\n";
-  ptr +="</script>\n";  
-
   ptr +="</head>\n";
   ptr +="<body>\n";
   ptr +="<h1>Knife Sharpner</h1>\n";
@@ -39,17 +28,54 @@ String getHTML() {
   ptr +="  <div class='wrapperButton'>\n";
   ptr +="    <p>Buzzer</p><a id='buzzerState' class=\"button button-off\">OFF</a>\n";
   ptr +="  </div>\n";
+  ptr +="  <div id='middle_gap'>\n";
+  ptr +="  &nbsp;\n";
+  ptr +="  </div>\n";  
   ptr +="  <div class='wrapperButton'>\n";
-  ptr +="    <p>Reset angle</p><a id='angleResetState' class=\"button button-off\">OFF</a>\n";
+  ptr +="    <p>Reset angle</p><a id='angleResetState' class=\"button button-off\">SET</a>\n";
   ptr +="  </div>\n";
   ptr +="</div>\n";
-  
-  ptr +="<a id='angleButton' class=\"button button-off\">Start</a>\n";
 
-  ptr +="<p id='angle'>Set angle: none</p>\n";
+  ptr +="<div class='wrapper'>\n";
+  ptr +="  <div class='wrapperButton'>\n";
+  ptr +="    <p>Deviation</p><a id='decrementDeviation' class=\"button button-off\">-</a>\n";
+  ptr +="  </div>\n";
+  ptr +="  <div id='deviation'>\n";
+  ptr +="  3\n";
+  ptr +="  </div>\n";
+  ptr +="  <div class='wrapperButton'>\n";
+  ptr +="    <p>&nbsp;</p><a id='incrementDeviation' class=\"button button-off\">+</a>\n";
+  ptr +="  </div>\n";
+  ptr +="</div>\n";
+
+  ptr +="<p class='big-text' id='angle'>0</p>\n";
 
 
   ptr +="<script>\n";
+  ptr +="const incrementDeviation = function() {\n";
+  ptr +="  var xhttp = new XMLHttpRequest();\n";
+  ptr +="  xhttp.onreadystatechange = function() {\n";
+  ptr +="    if (this.readyState === 4 && this.status === 200) {\n";
+  ptr +="      document.getElementById('deviation').innerHTML = this.responseText;\n";
+  ptr +="    }\n";
+  ptr +="  }\n";
+  ptr +="  xhttp.open(\"GET\", \"/incrementDeviation\", true);\n";
+  ptr +="  xhttp.send();\n";
+  ptr +="}\n";
+  ptr +="document.getElementById('incrementDeviation').onclick = incrementDeviation;\n";  
+
+  ptr +="const decrementDeviation = function() {\n";
+  ptr +="  var xhttp = new XMLHttpRequest();\n";
+  ptr +="  xhttp.onreadystatechange = function() {\n";
+  ptr +="    if (this.readyState === 4 && this.status === 200) {\n";
+  ptr +="      document.getElementById('deviation').innerHTML = this.responseText;\n";
+  ptr +="    }\n";
+  ptr +="  }\n";
+  ptr +="  xhttp.open(\"GET\", \"/decrementDeviation\", true);\n";
+  ptr +="  xhttp.send();\n";
+  ptr +="}\n";
+  ptr +="document.getElementById('decrementDeviation').onclick = decrementDeviation;\n";  
+  
   ptr +="const setAngle = function() {\n";
   ptr +="  console.log('Clicked set angle button');\n";
   ptr +="  var xhttp = new XMLHttpRequest();\n";
@@ -58,10 +84,9 @@ String getHTML() {
   ptr +="    if (this.readyState === 4 && this.status === 200) {\n";
   ptr +="      console.log('Response:', this.responseText)\n";
   ptr +="      document.getElementById('displayBaseAngle').innerHTML = this.responseText;\n";
-  ptr +="      document.getElementById('angleResetState').innerHTML = document.getElementById('angleResetState').innerHTML === 'OFF' ? 'ON' : 'OFF';\n";
   ptr +="    }\n";
   ptr +="  }\n";
-  ptr +="  xhttp.open(\"GET\", \"/toggleAngleSet\", true);\n";
+  ptr +="  xhttp.open(\"GET\", \"/setAngle\", true);\n";
   ptr +="  xhttp.send();\n";
   ptr +="}\n";
   ptr +="document.getElementById('angleResetState').onclick = setAngle;\n";  
@@ -81,8 +106,19 @@ String getHTML() {
   ptr +="}\n";
   ptr +="document.getElementById('buzzerState').onclick = setBuzzer;\n";  
   
-  ptr +="</script>\n";  
+  ptr +="function updateAngleDisplay() {\n";
+  ptr +="  var xhttp = new XMLHttpRequest();\n";
+  ptr +="  xhttp.onreadystatechange = function() {\n";
+  ptr +="    if (this.readyState === 4 && this.status === 200) {\n";
+  ptr +="      document.getElementById('angle').innerHTML = this.responseText;\n";
+  ptr +="    }\n";
+  ptr +="  }\n";
+  ptr +="  xhttp.open(\"GET\", \"/getCurrentAngle\", true);\n";
+  ptr +="  xhttp.send();\n";
+  ptr +="}\n";
+  ptr +="setInterval(updateAngleDisplay, 300);\n";
   
+  ptr +="</script>\n";  
   ptr +="</body>\n";
   ptr +="</html>\n";
   
