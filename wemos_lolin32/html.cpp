@@ -8,6 +8,7 @@ String getHTML() {
   ptr +="body{margin-top: 50px;} h1 {color: #444444;margin: 50px auto 30px;} h3 {color: #444444;margin-bottom: 30px;}\n";
   ptr +=".button {display: block;width: 80px;background-color: #3498db;border: none;color: white;padding: 13px 30px;text-decoration: none;font-size: 25px;cursor: pointer;border-radius: 4px;}\n";
   ptr +=".button-on {background-color: #3498db;}\n";
+  ptr +="#setupError {color: darkorange;}\n";
   ptr +=".wrapper {display: flex;justify-content: center;}\n";
   ptr +=".wrapperButton {padding: 0 20px;}\n";
   ptr +=".button-on:active {background-color: #2980b9;}\n";
@@ -22,6 +23,7 @@ String getHTML() {
   ptr +="<body>\n";
   ptr +="<h1>Knife Sharpner</h1>\n";
   // ptr +="<h3>This is awesome!</h3>\n";
+  ptr +="<h2><span id='setupError'></span></h2>\n";
   ptr +="<h3>Set angle: <span id='displayBaseAngle'>0</span></h3>\n";
   
   ptr +="<div class='wrapper'>\n";
@@ -117,6 +119,18 @@ String getHTML() {
   ptr +="  xhttp.send();\n";
   ptr +="}\n";
   ptr +="setInterval(updateAngleDisplay, 300);\n";
+
+  ptr +="function checkforErrors() {\n";
+  ptr +="  var xhttp = new XMLHttpRequest();\n";
+  ptr +="  xhttp.onreadystatechange = function() {\n";
+  ptr +="    if (this.readyState === 4 && this.status === 200) {\n";
+  ptr +="      document.getElementById('setupError').innerHTML = this.responseText;\n";
+  ptr +="    }\n";
+  ptr +="  }\n";
+  ptr +="  xhttp.open(\"GET\", \"/checkforErrors\", true);\n";
+  ptr +="  xhttp.send();\n";
+  ptr +="}\n";
+  ptr +="checkforErrors();\n";
   
   ptr +="</script>\n";  
   ptr +="</body>\n";
