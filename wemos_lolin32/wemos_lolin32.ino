@@ -26,124 +26,195 @@
    GROUND to common ground
 
    Buzzer:
-   S to 19  
+   S to 19
    - to GND
 
 */
 
-boolean buzzerState = true;
+boolean buzzerState = false;
+boolean activeState = false;
 
-int baseAngle = 0;
-int currentAngle;
-int okDeviation = 3;
+// set the base angle of the table and stone
+int baseAngleZ = 0;
+int baseAngleX = 0;
+// set the desired angle
+int desiredAngleZ = 0;
 
-int convertDeviationToNote(int deviation) {
-  return (deviation * 100);
-//  return (deviation * 100) - 500;
+int currentAngleZ;
+int currentAngleX;
+
+int okDeviationZ = 3;
+int okDeviationX = 3;
+
+/* Set the delay between fresh samples */
+uint16_t delayTimeMillis = 100;
+
+int convertDeviationToNote(int deviation)
+{
+  return (deviation * 100) - 200;
+  //  return (deviation * 100) - 500;
 }
 
-int getDeviationFromBase() {
+int processCurrentAngle()
+{
   int deviation;
   int speedOfSound = 100;
 
+  // make sure we have not moved the thing off the sharpening plain
+  // eg: bringing it back:
+  int hasMovedUpAmount = baseAngleX - currentAngleX - okDeviationX;
+  Serial.print("XDeviation: ");
+  Serial.println(hasMovedUpAmount);
+  if (hasMovedUpAmount > okDeviationX)
+  {
+    Serial.print("Detected X elevation, skipping checks.");
+    return 0;
+  }
+
   Serial.print("Base,SetDeviation,Current,Deviation: ");
-  Serial.print(baseAngle);
+  Serial.print(baseAngleZ);
   Serial.print(", ");
-  Serial.print(okDeviation);
+  Serial.print(okDeviationZ);
   Serial.print(", ");
-  Serial.print(currentAngle);
+  Serial.print(currentAngleZ);
   Serial.print(", ");
 
-  if (baseAngle == currentAngle) {
+  if (baseAngleZ == currentAngleZ)
+  {
     Serial.println("");
     return 0;
   }
 
-  if (baseAngle > currentAngle) {
-    deviation = baseAngle - currentAngle;
+  if (baseAngleZ > currentAngleZ)
+  {
+    deviation = baseAngleZ - currentAngleZ;
 
     Serial.print(deviation);
     Serial.println(" (Below)");
 
-    if (deviation <= okDeviation) {
+    if (deviation <= okDeviationZ)
+    {
       return 0;
     }
 
-//    if (deviation > 90) {
-//      playMusic();
-//    }
+    //    Serial.print("Below ");
+    //    Serial.println(deviation);
 
-//    Serial.print("Below ");
-//    Serial.println(deviation);
-
-    if (deviation > 20) {
+    if (deviation > 20)
+    {
       speedOfSound = 300;
-    } else {
+    }
+    else
+    {
       speedOfSound = 100;
     }
-  } else {
-    deviation = currentAngle - baseAngle;
+  }
+  else
+  {
+    deviation = currentAngleZ - baseAngleZ;
 
     Serial.print(deviation);
     Serial.println(" (Above)");
 
-    if (deviation <= okDeviation) {
+    if (deviation <= okDeviationZ)
+    {
       return 0;
     }
 
-//    Serial.print("Above ");
-//    Serial.println(deviation);
+    //    Serial.print("Above ");
+    //    Serial.println(deviation);
 
-    if (deviation > 20) {
+    if (deviation > 20)
+    {
       speedOfSound = 300;
-    } else {
+    }
+    else
+    {
       speedOfSound = 100;
     }
   }
 
-  beep(convertDeviationToNote(deviation), speedOfSound);
+  if (buzzerState) {
+    beep(convertDeviationToNote(deviation), speedOfSound);
+  }
 }
 
 XYZ xyz;
 WebServer server(80);
 
-void handleSendAll() {
+void handleSendAll()
+{
   server.send(200, "text/html", getHTML());
 }
 
-void setAngle() {
-  baseAngle = currentAngle;
-  server.send(200, "text/html", (String) baseAngle);
+void setBaseAngle()
+{
+  baseAngleX = currentAngleX;
+  baseAngleZ = currentAngleZ;
+  server.send(200, "text/html", (String)baseAngleX);
 }
 
-void getCurrentAngle() {
-  server.send(200, "text/html", (String) currentAngle);
+void setDesiredAngleZ()
+{
+  desiredAngleZ = currentAngleZ;
+  server.send(200, "text/html", (String)desiredAngleZ);
 }
 
-void handleToggleBuzzer() {
-  buzzerState = !buzzerState;
-  if (buzzerState) {
+void getCurrentAngleZ()
+{
+  server.send(200, "text/html", (String)currentAngleZ);
+}
+void getCurrentAngleX()
+{
+  server.send(200, "text/html", (String)currentAngleX);
+}
+
+void handleToggleActive()
+{
+  activeState = !activeState;
+  server.send(200, "text/html", activeState ? "ON" : "OFF");
+}
+void handleToggleBuzzer()
+{
+  buzzerState = !buzzerState;  
+  if (buzzerState)
+  {
     playOnSound();
-  } else {
+  }
+  else
+  {
     playOffSound();
   }
   server.send(200, "text/html", buzzerState ? "ON" : "OFF");
 }
 
-void checkforErrors() {
-  Serial.println("Error state:");  
-  Serial.println(xyz.error);  
-  
+void checkforErrors()
+{
+  Serial.println("Error state:");
+  Serial.println(xyz.error);
+
   server.send(200, "text/html", xyz.error ? "Error during startup" : "");
 }
 
-void decrementDeviation() {
-  okDeviation -= 1;
-  server.send(200, "text/html", (String) okDeviation);
+void decrementDeviationZ()
+{
+  okDeviationZ -= 1;
+  server.send(200, "text/html", (String)okDeviationZ);
 }
-void incrementDeviation() {
-  okDeviation += 1;
-  server.send(200, "text/html", (String) okDeviation);
+void incrementDeviationZ()
+{
+  okDeviationZ += 1;
+  server.send(200, "text/html", (String)okDeviationZ);
+}
+void decrementDeviationX()
+{
+  okDeviationX -= 1;
+  server.send(200, "text/html", (String)okDeviationX);
+}
+void incrementDeviationX()
+{
+  okDeviationX += 1;
+  server.send(200, "text/html", (String)okDeviationX);
 }
 
 void setup(void)
@@ -157,38 +228,50 @@ void setup(void)
   delay(500); // needs time to startup
 
   server.on("/", handleSendAll);
-  server.on("/setAngle", setAngle);
-  server.on("/getCurrentAngle", getCurrentAngle);
-  server.on("/toggleBuzzer", handleToggleBuzzer);
-  server.on("/decrementDeviation", decrementDeviation);
-  server.on("/incrementDeviation", incrementDeviation);
-  server.on("/checkforErrors", checkforErrors); 
+  server.on("/setBaseAngle", setBaseAngle);
+  server.on("/setDesiredAngleZ", setDesiredAngleZ);
+  server.on("/getCurrentAngleZ", getCurrentAngleZ);
+  server.on("/getCurrentAngleX", getCurrentAngleX);
+  server.on("/decrementDeviationZ", decrementDeviationZ);
+  server.on("/decrementDeviationX", decrementDeviationX);
+  server.on("/incrementDeviationZ", incrementDeviationZ);
+  server.on("/incrementDeviationX", incrementDeviationX);
+  server.on("/handleToggleBuzzer", handleToggleBuzzer);
+  server.on("/handleToggleActive", handleToggleActive);
+  server.on("/checkforErrors", checkforErrors);
 
   server.begin();
 
   buzzerSetup();
-    
+
   playOnSound();
-  
+
   xyz.setup();
 
   delay(500); // needs time to startup
   Serial.println("HTTP server started (setup complete)");
-  Serial.println("");  
+  Serial.println("");
 }
 
 void loop(void)
 {
   // for fun and testing:
   // playMusic(); return;
-  
+
   server.handleClient();
 
-  currentAngle = xyz.getZReading();
-
-  // delay(200);
-
-  if (buzzerState && !xyz.error) {
-    getDeviationFromBase();
+  if (!activeState || xyz.error) {
+    delay(delayTimeMillis);
+    return;  
   }
+
+  currentAngleZ = xyz.getZReading();
+  currentAngleX = xyz.getXReading();
+
+  if (activeState)
+  {
+    processCurrentAngle();
+  }
+
+  delay(delayTimeMillis);
 }

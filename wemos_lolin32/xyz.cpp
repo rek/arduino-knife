@@ -8,9 +8,6 @@
 #define SDA_PIN 21
 #define SCL_PIN 22
 
-/* Set the delay between fresh samples */
-uint16_t BNO055_SAMPLERATE_DELAY_MS = 100;
-
 // Check I2C device address and correct line below (by default address is 0x29 or 0x28)
 //                                   id, address
 Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x29);
@@ -76,9 +73,19 @@ int XYZ::getZReading()
 
   bno.getCalibration(&system, &gyro, &accel, &mag);
 
-  delay(BNO055_SAMPLERATE_DELAY_MS);
-
   return orientationData.orientation.z;
+}
+
+int XYZ::getXReading()
+{
+  if (error)
+  {
+    return -0;
+  }
+
+  sensors_event_t linearAccelData;
+  bno.getEvent(&linearAccelData, Adafruit_BNO055::VECTOR_LINEARACCEL);
+  return linearAccelData.acceleration.z;
 }
 
 void printEvent(sensors_event_t *event)
