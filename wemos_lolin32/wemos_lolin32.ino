@@ -34,11 +34,16 @@
 boolean buzzerState = false;
 boolean activeState = false;
 
+boolean inPauseFromXHeightChangeMode = false;
+uint16_t totalPauseTimeMillis = 5000;
+uint16_t currentPauseTimeMillis = 0;
+
 // set the base angle of the table and stone
 int baseAngleZ = 0;
 int baseAngleX = 0;
 // set the desired angle
 int desiredAngleZ = 0;
+int taredZAngle = 0;
 
 int currentAngleZ;
 int currentAngleX;
@@ -51,7 +56,7 @@ uint16_t delayTimeMillis = 100;
 
 int convertDeviationToNote(int deviation)
 {
-  return (deviation * 100) - 200;
+  return (deviation * 100) - 100;
   //  return (deviation * 100) - 500;
 }
 
@@ -60,6 +65,21 @@ int processCurrentAngle()
   int deviation;
   int speedOfSound = 100;
 
+  if (inPauseFromXHeightChangeMode)
+  {
+    boolean hasPausedLongEnough = currentPauseTimeMillis >= totalPauseTimeMillis;
+
+    if (hasPausedLongEnough)
+    {
+      inPauseFromXHeightChangeMode = false;
+      currentPauseTimeMillis = 0;
+    }
+    else
+    {
+      currentPauseTimeMillis += delayTimeMillis;
+    }
+  }
+
   // make sure we have not moved the thing off the sharpening plain
   // eg: bringing it back:
   int hasMovedUpAmount = baseAngleX - currentAngleX - okDeviationX;
@@ -67,6 +87,7 @@ int processCurrentAngle()
   Serial.println(hasMovedUpAmount);
   if (hasMovedUpAmount > okDeviationX)
   {
+    inPauseFromXHeightChangeMode = true;
     Serial.print("Detected X elevation, skipping checks.");
     return 0;
   }
@@ -79,15 +100,15 @@ int processCurrentAngle()
   Serial.print(currentAngleZ);
   Serial.print(", ");
 
-  if (baseAngleZ == currentAngleZ)
+  if (desiredAngleZ == taredZAngle)
   {
     Serial.println("");
     return 0;
   }
 
-  if (baseAngleZ > currentAngleZ)
+  if (desiredAngleZ > taredZAngle)
   {
-    deviation = baseAngleZ - currentAngleZ;
+    deviation = desiredAngleZ - taredZAngle;
 
     Serial.print(deviation);
     Serial.println(" (Below)");
@@ -111,7 +132,7 @@ int processCurrentAngle()
   }
   else
   {
-    deviation = currentAngleZ - baseAngleZ;
+    deviation = taredZAngle - desiredAngleZ;
 
     Serial.print(deviation);
     Serial.println(" (Above)");
@@ -134,7 +155,8 @@ int processCurrentAngle()
     }
   }
 
-  if (buzzerState) {
+  if (buzzerState)
+  {
     beep(convertDeviationToNote(deviation), speedOfSound);
   }
 }
@@ -147,19 +169,26 @@ void handleSendAll()
   server.send(200, "text/html", getHTML());
 }
 
+// TARE
 void setBaseAngle()
 {
-  baseAngleX = currentAngleX;
   baseAngleZ = currentAngleZ;
+  baseAngleX = currentAngleX;
   server.send(200, "text/html", (String)baseAngleX);
 }
 
 void setDesiredAngleZ()
 {
-  desiredAngleZ = currentAngleZ;
+  desiredAngleZ = baseAngleZ - currentAngleZ;
   server.send(200, "text/html", (String)desiredAngleZ);
 }
 
+void getTaredAngleZ()
+{
+  taredZAngle = baseAngleZ - currentAngleZ;
+  // this is the main angle to display in large font:
+  server.send(200, "text/html", (String)taredZAngle);
+}
 void getCurrentAngleZ()
 {
   server.send(200, "text/html", (String)currentAngleZ);
@@ -176,7 +205,7 @@ void handleToggleActive()
 }
 void handleToggleBuzzer()
 {
-  buzzerState = !buzzerState;  
+  buzzerState = !buzzerState;
   if (buzzerState)
   {
     playOnSound();
@@ -230,6 +259,7 @@ void setup(void)
   server.on("/", handleSendAll);
   server.on("/setBaseAngle", setBaseAngle);
   server.on("/setDesiredAngleZ", setDesiredAngleZ);
+  server.on("/getTaredAngleZ", getTaredAngleZ);
   server.on("/getCurrentAngleZ", getCurrentAngleZ);
   server.on("/getCurrentAngleX", getCurrentAngleX);
   server.on("/decrementDeviationZ", decrementDeviationZ);
@@ -260,9 +290,10 @@ void loop(void)
 
   server.handleClient();
 
-  if (!activeState || xyz.error) {
+  if (!activeState || xyz.error)
+  {
     delay(delayTimeMillis);
-    return;  
+    return;
   }
 
   currentAngleZ = xyz.getZReading();
