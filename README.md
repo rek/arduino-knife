@@ -1,4 +1,20 @@
-# Knife Sharpening - Digitial traininer
+# Knife Sharpening - Digital trainer
+
+## Dev
+
+Install the board pack in Arduino IDE: esp32 from espressif
+
+Set the board to: WEMOS LOLIN 32
+Baud rate: 115200
+
+## Usage
+
+Connect to the wifi: 'Knife Sharpner'
+
+Browse to: 192.168.1.1
+
+## Features
+
 
 [x] - make app not sleep
 [x] - move beep down 200 db
